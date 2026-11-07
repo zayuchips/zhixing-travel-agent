@@ -1,0 +1,23 @@
+# Render Blueprint：把「智行」一键部署成公网可访问的 Web 服务。
+# 用法：把仓库连到 Render → New → Blueprint → 选本仓库 → 应用。
+# 本项目零依赖，Build 阶段什么都不用装。
+services:
+  - type: web
+    name: zhixing-travel-agent
+    runtime: python
+    plan: free
+    buildCommand: "echo zero-dependency, no build step"
+    startCommand: "python3 server.py"
+    healthCheckPath: /api/health
+    envVars:
+      - key: BIND
+        value: 0.0.0.0
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      # 可选：接大模型才需要下面三个
+      # - key: LLM_BASE_URL
+      #   value: https://api.deepseek.com/v1
+      # - key: LLM_API_KEY
+      #   sync: false
+      # - key: LLM_MODEL
+      #   value: deepseek-chat
