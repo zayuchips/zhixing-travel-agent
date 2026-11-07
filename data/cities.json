@@ -1,0 +1,731 @@
+{
+  "广州": {
+    "aliases": [
+      "guangzhou",
+      "gz",
+      "广州市",
+      "羊城"
+    ],
+    "tagline": "一盅两件的早茶、骑楼与江景",
+    "foods": [
+      "早茶点心",
+      "烧鹅",
+      "肠粉",
+      "艇仔粥"
+    ],
+    "pois": [
+      {
+        "name": "广州塔（小蛮腰）",
+        "cat": "地标",
+        "indoor": false,
+        "hours": 2.5,
+        "cost": 150,
+        "tip": "傍晚上塔，一次看日落和珠江夜景"
+      },
+      {
+        "name": "沙面岛",
+        "cat": "古迹",
+        "indoor": false,
+        "hours": 2,
+        "cost": 0,
+        "tip": "欧陆建筑群，白天拍照最好"
+      },
+      {
+        "name": "陈家祠",
+        "cat": "古迹",
+        "indoor": true,
+        "hours": 1.5,
+        "cost": 10,
+        "tip": "岭南木雕砖雕，午后有讲解"
+      },
+      {
+        "name": "广东省博物馆",
+        "cat": "博物馆",
+        "indoor": true,
+        "hours": 2.5,
+        "cost": 0,
+        "tip": "需提前在公众号预约，周一闭馆"
+      },
+      {
+        "name": "永庆坊",
+        "cat": "夜游",
+        "indoor": false,
+        "hours": 2,
+        "cost": 0,
+        "tip": "西关骑楼夜景，小吃集中"
+      },
+      {
+        "name": "白云山",
+        "cat": "自然",
+        "indoor": false,
+        "hours": 3,
+        "cost": 5,
+        "tip": "摩星岭看全城，建议清晨或傍晚上山"
+      },
+      {
+        "name": "珠江夜游",
+        "cat": "夜游",
+        "indoor": false,
+        "hours": 2,
+        "cost": 168,
+        "tip": "天字码头上船，晚场班次多"
+      },
+      {
+        "name": "北京路步行街",
+        "cat": "购物",
+        "indoor": false,
+        "hours": 2,
+        "cost": 0,
+        "tip": "街心有千年古道遗址"
+      }
+    ]
+  },
+  "长沙": {
+    "aliases": [
+      "changsha",
+      "cs",
+      "长沙市",
+      "星城"
+    ],
+    "tagline": "湘江夜色、臭豆腐与一杯茶颜悦色",
+    "foods": [
+      "臭豆腐",
+      "糖油粑粑",
+      "口味虾",
+      "米粉"
+    ],
+    "pois": [
+      {
+        "name": "橘子洲头",
+        "cat": "地标",
+        "indoor": false,
+        "hours": 2,
+        "cost": 0,
+        "tip": "坐观光车到洲头，黄昏光线最好"
+      },
+      {
+        "name": "岳麓山",
+        "cat": "自然",
+        "indoor": false,
+        "hours": 3,
+        "cost": 0,
+        "tip": "爱晚亭一线步行上山，索道可选"
+      },
+      {
+        "name": "湖南省博物馆",
+        "cat": "博物馆",
+        "indoor": true,
+        "hours": 3,
+        "cost": 0,
+        "tip": "马王堆汉墓陈列必须提前预约"
+      },
+      {
+        "name": "太平老街",
+        "cat": "夜游",
+        "indoor": false,
+        "hours": 2,
+        "cost": 0,
+        "tip": "晚上人最多，小吃一条街"
+      },
+      {
+        "name": "文和友（海信广场）",
+        "cat": "美食",
+        "indoor": true,
+        "hours": 2,
+        "cost": 120,
+        "tip": "复古市井布景，工作日下午排队短"
+      },
+      {
+        "name": "谢子龙影像艺术馆",
+        "cat": "博物馆",
+        "indoor": true,
+        "hours": 1.5,
+        "cost": 60,
+        "tip": "清水混凝土建筑，适合拍片"
+      },
+      {
+        "name": "天心阁",
+        "cat": "古迹",
+        "indoor": false,
+        "hours": 1.5,
+        "cost": 32,
+        "tip": "古城墙上俯瞰长沙天际线"
+      },
+      {
+        "name": "湘江风光带",
+        "cat": "自然",
+        "indoor": false,
+        "hours": 1.5,
+        "cost": 0,
+        "tip": "傍晚散步，对岸就是橘子洲"
+      }
+    ]
+  },
+  "北京": {
+    "aliases": [
+      "beijing",
+      "bj",
+      "北京市",
+      "首都"
+    ],
+    "tagline": "皇城中轴、胡同与长城",
+    "foods": [
+      "烤鸭",
+      "炸酱面",
+      "卤煮",
+      "豆汁儿"
+    ],
+    "pois": [
+      {
+        "name": "故宫博物院",
+        "cat": "古迹",
+        "indoor": true,
+        "hours": 4,
+        "cost": 60,
+        "tip": "提前 7 天实名预约，周一闭馆"
+      },
+      {
+        "name": "景山公园",
+        "cat": "地标",
+        "indoor": false,
+        "hours": 1.5,
+        "cost": 2,
+        "tip": "万春亭拍故宫全景，日落最佳"
+      },
+      {
+        "name": "八达岭长城",
+        "cat": "古迹",
+        "indoor": false,
+        "hours": 4,
+        "cost": 40,
+        "tip": "早班高铁到八达岭站，避开中午人流"
+      },
+      {
+        "name": "国家博物馆",
+        "cat": "博物馆",
+        "indoor": true,
+        "hours": 3,
+        "cost": 0,
+        "tip": "免费但需预约，安检排队较长"
+      },
+      {
+        "name": "南锣鼓巷 / 什刹海",
+        "cat": "夜游",
+        "indoor": false,
+        "hours": 2.5,
+        "cost": 0,
+        "tip": "夜里沿后海走一圈，酒吧街略吵"
+      },
+      {
+        "name": "颐和园",
+        "cat": "自然",
+        "indoor": false,
+        "hours": 3.5,
+        "cost": 30,
+        "tip": "从北宫门进，人少且能顺着长廊走"
+      },
+      {
+        "name": "798 艺术区",
+        "cat": "博物馆",
+        "indoor": true,
+        "hours": 2.5,
+        "cost": 0,
+        "tip": "免费，部分画廊周一闭馆"
+      },
+      {
+        "name": "前门大街",
+        "cat": "购物",
+        "indoor": false,
+        "hours": 2,
+        "cost": 0,
+        "tip": "晚上灯笼亮起，老字号集中"
+      }
+    ]
+  },
+  "上海": {
+    "aliases": [
+      "shanghai",
+      "sh",
+      "上海市",
+      "魔都"
+    ],
+    "tagline": "外滩万国建筑、梧桐区与生煎",
+    "foods": [
+      "生煎",
+      "小笼包",
+      "本帮菜",
+      "葱油面"
+    ],
+    "pois": [
+      {
+        "name": "外滩",
+        "cat": "地标",
+        "indoor": false,
+        "hours": 2,
+        "cost": 0,
+        "tip": "19:00 后亮灯，从外白渡桥往南走"
+      },
+      {
+        "name": "上海博物馆",
+        "cat": "博物馆",
+        "indoor": true,
+        "hours": 3,
+        "cost": 0,
+        "tip": "青铜与陶瓷馆必看，需预约"
+      },
+      {
+        "name": "武康路 / 安福路",
+        "cat": "古迹",
+        "indoor": false,
+        "hours": 2.5,
+        "cost": 0,
+        "tip": "梧桐区 Citywalk，咖啡店密度极高"
+      },
+      {
+        "name": "豫园",
+        "cat": "古迹",
+        "indoor": false,
+        "hours": 2,
+        "cost": 40,
+        "tip": "园林早上人少，城隍庙小吃偏游客价"
+      },
+      {
+        "name": "陆家嘴滨江",
+        "cat": "夜游",
+        "indoor": false,
+        "hours": 2,
+        "cost": 0,
+        "tip": "对岸看外滩，或上环球金融中心观景"
+      },
+      {
+        "name": "田子坊",
+        "cat": "购物",
+        "indoor": true,
+        "hours": 1.5,
+        "cost": 0,
+        "tip": "弄堂小店，工作日逛更舒服"
+      },
+      {
+        "name": "南京路步行街",
+        "cat": "购物",
+        "indoor": true,
+        "hours": 2,
+        "cost": 0,
+        "tip": "人民广场走到外滩约 20 分钟"
+      },
+      {
+        "name": "上海科技馆",
+        "cat": "亲子",
+        "indoor": true,
+        "hours": 3,
+        "cost": 60,
+        "tip": "周一闭馆，适合带小孩"
+      }
+    ]
+  },
+  "成都": {
+    "aliases": [
+      "chengdu",
+      "cd",
+      "成都市",
+      "蓉城"
+    ],
+    "tagline": "火锅、茶馆与大熊猫",
+    "foods": [
+      "火锅",
+      "串串",
+      "担担面",
+      "钟水饺"
+    ],
+    "pois": [
+      {
+        "name": "成都大熊猫繁育研究基地",
+        "cat": "亲子",
+        "indoor": false,
+        "hours": 3,
+        "cost": 55,
+        "tip": "8:30 前到，熊猫上午最活跃"
+      },
+      {
+        "name": "宽窄巷子",
+        "cat": "夜游",
+        "indoor": false,
+        "hours": 2,
+        "cost": 0,
+        "tip": "晚上灯光好，茶馆可坐下喝盖碗茶"
+      },
+      {
+        "name": "武侯祠 + 锦里",
+        "cat": "古迹",
+        "indoor": false,
+        "hours": 3,
+        "cost": 50,
+        "tip": "两处相邻，先祠后街"
+      },
+      {
+        "name": "四川博物院",
+        "cat": "博物馆",
+        "indoor": true,
+        "hours": 2.5,
+        "cost": 0,
+        "tip": "免费，周一闭馆"
+      },
+      {
+        "name": "人民公园鹤鸣茶社",
+        "cat": "美食",
+        "indoor": false,
+        "hours": 1.5,
+        "cost": 40,
+        "tip": "体验采耳与盖碗茶，本地人日常"
+      },
+      {
+        "name": "都江堰",
+        "cat": "自然",
+        "indoor": false,
+        "hours": 4,
+        "cost": 80,
+        "tip": "城际高铁 30 分钟，需半天"
+      },
+      {
+        "name": "太古里 / 春熙路",
+        "cat": "购物",
+        "indoor": true,
+        "hours": 2,
+        "cost": 0,
+        "tip": "IFS 楼顶熊猫是固定打卡点"
+      },
+      {
+        "name": "望江楼公园",
+        "cat": "自然",
+        "indoor": false,
+        "hours": 1.5,
+        "cost": 20,
+        "tip": "竹林里喝茶，本地人多"
+      }
+    ]
+  },
+  "西安": {
+    "aliases": [
+      "xian",
+      "xa",
+      "西安市",
+      "长安"
+    ],
+    "tagline": "城墙、兵马俑与肉夹馍",
+    "foods": [
+      "肉夹馍",
+      "羊肉泡馍",
+      "凉皮",
+      "biangbiang 面"
+    ],
+    "pois": [
+      {
+        "name": "秦始皇兵马俑",
+        "cat": "古迹",
+        "indoor": true,
+        "hours": 3.5,
+        "cost": 120,
+        "tip": "一二三号坑按顺序看，建议请讲解"
+      },
+      {
+        "name": "西安城墙",
+        "cat": "地标",
+        "indoor": false,
+        "hours": 2,
+        "cost": 54,
+        "tip": "租自行车环城 14 公里，傍晚上墙"
+      },
+      {
+        "name": "陕西历史博物馆",
+        "cat": "博物馆",
+        "indoor": true,
+        "hours": 3,
+        "cost": 0,
+        "tip": "免费票需提前抢，周一闭馆"
+      },
+      {
+        "name": "大雁塔 / 大唐不夜城",
+        "cat": "夜游",
+        "indoor": false,
+        "hours": 3,
+        "cost": 50,
+        "tip": "晚上灯光秀，人流大注意随身物品"
+      },
+      {
+        "name": "回民街",
+        "cat": "美食",
+        "indoor": false,
+        "hours": 2,
+        "cost": 80,
+        "tip": "往里走比街口便宜，甑糕值得试"
+      },
+      {
+        "name": "华山",
+        "cat": "自然",
+        "indoor": false,
+        "hours": 6,
+        "cost": 180,
+        "tip": "需整天，索道上下更省力"
+      },
+      {
+        "name": "钟鼓楼",
+        "cat": "地标",
+        "indoor": false,
+        "hours": 1,
+        "cost": 50,
+        "tip": "傍晚上楼看钟楼亮灯"
+      },
+      {
+        "name": "永兴坊",
+        "cat": "美食",
+        "indoor": false,
+        "hours": 1.5,
+        "cost": 60,
+        "tip": "摔碗酒，比回民街清静"
+      }
+    ]
+  },
+  "杭州": {
+    "aliases": [
+      "hangzhou",
+      "hz",
+      "杭州市",
+      "临安"
+    ],
+    "tagline": "西湖十景、龙井茶与宋韵",
+    "foods": [
+      "西湖醋鱼",
+      "龙井虾仁",
+      "片儿川",
+      "定胜糕"
+    ],
+    "pois": [
+      {
+        "name": "西湖（断桥—白堤）",
+        "cat": "自然",
+        "indoor": false,
+        "hours": 3,
+        "cost": 0,
+        "tip": "清晨人少，环湖骑行一圈约 2 小时"
+      },
+      {
+        "name": "灵隐寺 + 飞来峰",
+        "cat": "古迹",
+        "indoor": false,
+        "hours": 3,
+        "cost": 75,
+        "tip": "飞来峰造像值得细看，需两次购票"
+      },
+      {
+        "name": "浙江省博物馆（孤山馆）",
+        "cat": "博物馆",
+        "indoor": true,
+        "hours": 2,
+        "cost": 0,
+        "tip": "周一闭馆，紧邻西泠印社"
+      },
+      {
+        "name": "河坊街 / 南宋御街",
+        "cat": "夜游",
+        "indoor": false,
+        "hours": 2,
+        "cost": 0,
+        "tip": "晚上灯笼亮起，药店与老字号集中"
+      },
+      {
+        "name": "龙井村",
+        "cat": "自然",
+        "indoor": false,
+        "hours": 2.5,
+        "cost": 60,
+        "tip": "茶园徒步，喝茶先问价"
+      },
+      {
+        "name": "宋城",
+        "cat": "亲子",
+        "indoor": false,
+        "hours": 3,
+        "cost": 320,
+        "tip": "千古情演出需提前订场次"
+      },
+      {
+        "name": "西溪湿地",
+        "cat": "自然",
+        "indoor": false,
+        "hours": 3.5,
+        "cost": 80,
+        "tip": "坐船进芦苇荡，半天起"
+      },
+      {
+        "name": "湖滨银泰 in77",
+        "cat": "购物",
+        "indoor": true,
+        "hours": 2,
+        "cost": 0,
+        "tip": "西湖边，下雨天的好去处"
+      }
+    ]
+  },
+  "重庆": {
+    "aliases": [
+      "chongqing",
+      "cq",
+      "重庆市",
+      "山城"
+    ],
+    "tagline": "8D 立体城市、轻轨穿楼与火锅",
+    "foods": [
+      "老火锅",
+      "小面",
+      "酸辣粉",
+      "烤脑花"
+    ],
+    "pois": [
+      {
+        "name": "洪崖洞",
+        "cat": "夜游",
+        "indoor": false,
+        "hours": 2,
+        "cost": 0,
+        "tip": "19:30 亮灯，从千厮门大桥拍全景"
+      },
+      {
+        "name": "李子坝轻轨穿楼",
+        "cat": "地标",
+        "indoor": false,
+        "hours": 1,
+        "cost": 0,
+        "tip": "观景台在马路对面，等 2 号线进站"
+      },
+      {
+        "name": "磁器口古镇",
+        "cat": "古迹",
+        "indoor": false,
+        "hours": 2.5,
+        "cost": 0,
+        "tip": "早去人少，陈麻花不必排长队"
+      },
+      {
+        "name": "重庆中国三峡博物馆",
+        "cat": "博物馆",
+        "indoor": true,
+        "hours": 2.5,
+        "cost": 0,
+        "tip": "免费，周一闭馆，对面是人民大礼堂"
+      },
+      {
+        "name": "长江索道",
+        "cat": "自然",
+        "indoor": false,
+        "hours": 1.5,
+        "cost": 30,
+        "tip": "单程即可，排队久可选夜场"
+      },
+      {
+        "name": "南山一棵树观景台",
+        "cat": "夜游",
+        "indoor": false,
+        "hours": 1.5,
+        "cost": 30,
+        "tip": "看渝中半岛夜景，建议打车上下山"
+      },
+      {
+        "name": "鹅岭二厂",
+        "cat": "购物",
+        "indoor": true,
+        "hours": 2,
+        "cost": 0,
+        "tip": "文创园天台看两江"
+      },
+      {
+        "name": "白象居",
+        "cat": "古迹",
+        "indoor": false,
+        "hours": 1,
+        "cost": 0,
+        "tip": "老居民楼，拍轻轨穿楼"
+      }
+    ]
+  },
+  "深圳": {
+    "aliases": [
+      "shenzhen",
+      "sz",
+      "深圳市",
+      "鹏城"
+    ],
+    "tagline": "海滨栈道、城中村烟火与设计感",
+    "foods": [
+      "潮汕牛肉火锅",
+      "烧腊",
+      "肠粉",
+      "沙井蚝"
+    ],
+    "pois": [
+      {
+        "name": "深圳湾公园",
+        "cat": "自然",
+        "indoor": false,
+        "hours": 2.5,
+        "cost": 0,
+        "tip": "骑行看对岸香港，日落最美"
+      },
+      {
+        "name": "深圳博物馆",
+        "cat": "博物馆",
+        "indoor": true,
+        "hours": 2,
+        "cost": 0,
+        "tip": "免费，市民中心旁，周一闭馆"
+      },
+      {
+        "name": "华侨城创意园",
+        "cat": "购物",
+        "indoor": true,
+        "hours": 2,
+        "cost": 0,
+        "tip": "旧厂房改造，咖啡与书店集中"
+      },
+      {
+        "name": "大鹏所城",
+        "cat": "古迹",
+        "indoor": false,
+        "hours": 3,
+        "cost": 0,
+        "tip": "离市区 1.5 小时，可连海边一起玩"
+      },
+      {
+        "name": "世界之窗",
+        "cat": "亲子",
+        "indoor": false,
+        "hours": 5,
+        "cost": 220,
+        "tip": "适合带小孩，晚上有烟花表演"
+      },
+      {
+        "name": "海上世界",
+        "cat": "夜游",
+        "indoor": false,
+        "hours": 2,
+        "cost": 0,
+        "tip": "明华轮一带夜景，周末有音乐喷泉"
+      },
+      {
+        "name": "莲花山公园",
+        "cat": "自然",
+        "indoor": false,
+        "hours": 1.5,
+        "cost": 0,
+        "tip": "山顶看市民中心全景"
+      },
+      {
+        "name": "南头古城",
+        "cat": "古迹",
+        "indoor": false,
+        "hours": 2,
+        "cost": 0,
+        "tip": "改造后的老城，咖啡小店多"
+      }
+    ]
+  }
+}
