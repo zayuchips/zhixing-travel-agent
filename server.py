@@ -27,8 +27,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import config  # noqa: E402
 import db  # noqa: E402
-import llm  # noqa: E402
 from agent import Agent  # noqa: E402
+from agent import attachments, guide, pi_bridge  # noqa: E402
 from mcp import protocol  # noqa: E402
 from mcp import registry  # noqa: E402
 from mcp.tools import register_all  # noqa: E402
@@ -37,6 +37,15 @@ AGENT = Agent()
 register_all()
 
 DEMO_USER = ("demo", "demo1234")
+
+
+def _mask(secret):
+    """脱敏：只回显首尾各 4 位，够用户确认是哪个 Key，又不至于泄漏。"""
+    if not secret:
+        return ""
+    if len(secret) <= 12:
+        return secret[:2] + "****"
+    return secret[:4] + "****" + secret[-4:]
 
 
 def _ensure_demo_user():
@@ -140,9 +149,18 @@ class Handler(BaseHTTPRequestHandler):
         if method == "GET" and path == "/api/health":
             return self._json({"ok": True, "version": config.APP_VERSION})
         if method == "GET" and path == "/api/status":
+            pi_ok, pi_reason = pi_bridge.available()
             return self._json({
                 "ok": True, "app": config.APP_NAME, "version": config.APP_VERSION,
-                "engine": llm.status(), "tools": len(registry.list_tools()),
+                "engine": {
+                    "llm_enabled": pi_ok,
+                    "model": config.PI_MODEL or "pi 内置默认",
+                    "provider": "pi",
+                    "label": "Pi agent harness（RPC）",
+                    "reason": pi_reason,
+                },
+                "amap": bool(config.AMAP_KEY),
+                "tools": len(registry.list_tools()),
                 "stats": db.stats(), "recent_calls": registry.recent_calls(8),
             })
         if method == "GET" and path == "/api/tools":
@@ -185,6 +203,106 @@ class Handler(BaseHTTPRequestHandler):
         if method == "GET" and path == "/api/me":
             return self._json({"ok": True, "user": user})
 
+        # ---------------- 设置页 ----------------
+        if method == "GET" and path == "/api/settings":
+            amap = config.AMAP_KEY or ""
+            mkey = config.LLM_API_KEY or ""
+            return self._json({
+                "ok": True,
+                "amap_key": _mask(amap), "amap_set": bool(amap),
+                "model_key": _mask(mkey), "model_set": bool(mkey),
+                "llm_model": config.LLM_MODEL, "pi_model": config.PI_MODEL,
+                "provider": config.PI_PROVIDER,
+                "engine_ready": pi_bridge.available()[0],
+            })
+
+        if method == "POST" and path == "/api/settings":
+            body = self._body() or {}
+            updates = {}
+            for field, env_key in (("amap_key", "AMAP_KEY"),
+                                   ("model_key", "DASHSCOPE_API_KEY"),
+                                   ("pi_model", "PI_MODEL"),
+                                   ("llm_model", "LLM_MODEL")):
+                val = (body.get(field) or "").strip()
+                if val:
+                    updates[env_key] = val
+            if body.get("model_key"):
+                # 抽取记忆的轻量调用走 LLM_API_KEY，两个都写，避免只改一个不生效
+                updates["LLM_API_KEY"] = body["model_key"].strip()
+            if not updates:
+                return self._error(400, "没有要保存的字段")
+            changed = config.update_env(updates)
+            pi_bridge.shutdown()  # provider/model 是启动参数，改了必须重建进程
+            return self._json({"ok": True, "changed": sorted(changed)})
+
+        # ---------------- 长期记忆 ----------------
+        if method == "GET" and path == "/api/memories":
+            return self._json({"ok": True, "memories": db.memories_get(user["id"])})
+
+        if method == "POST" and path == "/api/memories":
+            body = self._body() or {}
+            key = (body.get("key") or "").strip()
+            val = (body.get("value") or "").strip()
+            if not key or not val:
+                return self._error(400, "key 和 value 都不能为空")
+            db.memory_set(user["id"], key, val, "manual")
+            return self._json({"ok": True})
+
+        if method == "POST" and path == "/api/memories/delete":
+            body = self._body() or {}
+            key = (body.get("key") or "").strip()
+            return self._json({"ok": db.memory_del(user["id"], key)})
+
+        if method == "POST" and path == "/api/memories/clear":
+            return self._json({"ok": True, "removed": db.memories_clear(user["id"])})
+
+        # ---------------- 打断 ----------------
+        if method == "POST" and path == "/api/chat/abort":
+            body = self._body() or {}
+            return self._json({"ok": True, "aborted": pi_bridge.abort(body.get("session_id"))})
+
+        # ---------------- 附件上传 ----------------
+        if method == "POST" and path == "/api/upload":
+            body = self._body()
+            if body is None:
+                return self._error(400, "请求体不是合法 JSON")
+            if not body.get("data"):
+                return self._error(400, "没有文件内容")
+            try:
+                fpath, ext, size = attachments.save(body.get("name"), body["data"])
+                if ext in attachments.IMAGE_EXT:
+                    kind = "图片"
+                    text = attachments.describe_image(fpath, ext)
+                else:
+                    kind = "文档"
+                    text = attachments.extract_text(fpath, ext)
+            except attachments.AttachError as e:
+                return self._error(400, str(e))
+            except Exception as e:  # noqa: BLE001
+                return self._error(400, "处理失败：%s: %s" % (type(e).__name__, e))
+            return self._json({
+                "ok": True, "name": os.path.basename(fpath), "kind": kind,
+                "size": size, "text": (text or "")[:8000],
+                "preview": (text or "").strip()[:100],
+            })
+
+        # ---------------- 攻略导出 ----------------
+        if method == "POST" and path == "/api/guide":
+            body = self._body() or {}
+            plan = body.get("plan")
+            if not isinstance(plan, dict) or not plan.get("days"):
+                return self._error(400, "没有可导出的行程数据")
+            fmt = "docx" if body.get("format") == "docx" else "html"
+            try:
+                if fmt == "docx":
+                    url, dest = guide.save_docx(plan, body.get("title"))
+                else:
+                    url, dest = guide.save_html(plan, body.get("title"), body.get("highlight"))
+            except Exception as e:  # noqa: BLE001
+                return self._error(500, "生成失败：%s: %s" % (type(e).__name__, e))
+            return self._json({"ok": True, "url": url, "format": fmt,
+                               "size": os.path.getsize(dest)})
+
         if method == "GET" and path == "/api/sessions":
             return self._json({"ok": True, "sessions": db.list_sessions(user["id"])})
 
@@ -204,9 +322,90 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"ok": True, "messages": db.list_messages(sid)})
             if method == "GET" and len(parts) == 4 and parts[3] == "export":
                 return self._export(sid)
+            if method == "POST" and len(parts) == 4 and parts[3] == "rename":
+                body = self._body() or {}
+                title = (body.get("title") or "").strip()
+                if not title:
+                    return self._error(400, "标题不能为空")
+                db.rename_session(sid, user["id"], title[:30])
+                return self._json({"ok": True})
             if method == "DELETE" and len(parts) == 3:
                 db.delete_session(sid, user["id"])
                 return self._json({"ok": True})
+
+        if method == "POST" and path == "/api/chat/stream":
+            body = self._body()
+            if body is None:
+                return self._error(400, "请求体不是合法 JSON")
+            text = (body.get("message") or "").strip()
+            if not text:
+                return self._error(400, "消息不能为空")
+            if len(text) > 500:
+                return self._error(400, "消息太长了，请控制在 500 字以内")
+            sid = body.get("session_id")
+            if not sid:
+                sid = db.create_session(user["id"], text[:18])
+            else:
+                try:
+                    sid = int(sid)
+                except (TypeError, ValueError):
+                    return self._error(400, "会话 id 不合法")
+                if db.session_owner(sid) != user["id"]:
+                    return self._error(403, "无权访问该会话")
+            db.add_message(sid, "user", text)
+
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("X-Accel-Buffering", "no")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            # HTTP/1.1 默认 keep-alive，而流式响应没有 Content-Length，
+            # 不主动关连接的话客户端会一直等 EOF。这里明确收尾。
+            self.close_connection = True
+
+            def emit(obj):
+                self.wfile.write(
+                    ("data: " + json.dumps(obj, ensure_ascii=False) + "\n\n").encode("utf-8"))
+                self.wfile.flush()
+
+            def on_rec(rec):
+                """把 Pi 的原始事件压成前端需要的几种，省得前端认 Pi 的协议。"""
+                kind = rec.get("type")
+                if kind == "agent_start":
+                    emit({"t": "stage", "v": "理解你的需求"})
+                elif kind == "message_update":
+                    ev = rec.get("assistantMessageEvent") or {}
+                    if ev.get("type") == "text_delta":
+                        emit({"t": "delta", "v": ev.get("delta") or ""})
+                elif kind == "tool_execution_start":
+                    emit({"t": "tool", "phase": "start",
+                          "name": pi_bridge.pretty(rec.get("toolName")),
+                          "args": rec.get("args") or {}})
+                elif kind == "tool_execution_end":
+                    emit({"t": "tool", "phase": "end",
+                          "name": pi_bridge.pretty(rec.get("toolName")),
+                          "ok": not rec.get("isError"),
+                          "ms": int(rec.get("durationMs") or 0)})
+
+            try:
+                emit({"t": "hello", "session_id": sid})
+                result = AGENT.respond(text, session_id=sid, user_id=user["id"],
+                                      stream=on_rec, files=body.get("attachments"))
+                db.add_message(sid, "assistant", result["reply"], result["steps"], result["cards"])
+                sessions = db.list_sessions(user["id"])
+                title = next((s["title"] for s in sessions if s["id"] == sid), "新对话")
+                if title == "新对话":
+                    db.rename_session(sid, user["id"], text[:18])
+                emit({"t": "done", "result": result, "session_id": sid})
+            except (BrokenPipeError, ConnectionResetError):
+                pass  # 用户中途关页面，正常现象
+            except Exception as e:  # noqa: BLE001
+                try:
+                    emit({"t": "error", "message": "%s: %s" % (type(e).__name__, e)})
+                except Exception:  # noqa: BLE001
+                    pass
+            return
 
         if method == "POST" and path == "/api/chat":
             body = self._body()
@@ -228,7 +427,8 @@ class Handler(BaseHTTPRequestHandler):
                 if db.session_owner(sid) != user["id"]:
                     return self._error(403, "无权访问该会话")
             db.add_message(sid, "user", text)
-            result = AGENT.respond(text)
+            result = AGENT.respond(text, session_id=sid, user_id=user["id"],
+                                   files=body.get("attachments"))
             db.add_message(sid, "assistant", result["reply"], result["steps"], result["cards"])
             sessions = db.list_sessions(user["id"])
             title = next((s["title"] for s in sessions if s["id"] == sid), "新对话")
@@ -322,8 +522,10 @@ def main():
     print("=" * 52)
     print(" %s  v%s" % (config.APP_NAME, config.APP_VERSION))
     print(" 地址: http://%s:%d" % ("127.0.0.1" if config.BIND == "0.0.0.0" else config.BIND, config.PORT))
-    print(" 理解层: %s" % llm.status()["label"])
+    pi_ok, pi_reason = pi_bridge.available()
+    print(" 引擎: %s" % ("Pi agent harness（RPC）" if pi_ok else "未就绪 —— %s" % pi_reason))
     print(" MCP 工具: %s" % ", ".join(t["name"] for t in registry.list_tools()))
+    print(" 高德: %s" % ("已配置" if config.AMAP_KEY else "未配置（POI 走本地示例数据）"))
     print(" 体验账号: %s / %s" % DEMO_USER)
     print("=" * 52)
     try:
@@ -331,6 +533,7 @@ def main():
     except KeyboardInterrupt:
         print("\n已停止")
     finally:
+        pi_bridge.shutdown()
         srv.server_close()
 
 

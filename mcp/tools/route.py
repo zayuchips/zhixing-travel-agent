@@ -32,7 +32,8 @@ def _haversine(a, b):
     return 2 * r * math.asin(math.sqrt(d))
 
 
-@register("route.plan_route", "规划两地之间的出行路线，返回真实里程、预计耗时与出行方式建议。", _SCHEMA)
+@register("route.plan_route",
+          "规划**城际**路线（城市到城市），返回真实路网里程与耗时。**只接受城市级地名**：市内景点之间的距离不要用它——底层地名库是城市级的，查「西街」「洛阳桥」这类小地名会解析到外省同名地点，给出上千公里的错误结果；市内通勤请让用户用地图 App。", _SCHEMA)
 def plan_route(origin, destination, mode="driving"):
     mode = (mode or "driving").lower()
     if mode not in MODES:
@@ -78,8 +79,10 @@ def plan_route(origin, destination, mode="driving"):
         })
 
     km = result["distance_km"]
-    if km < 3:
-        result["advice"] = "同城短途，骑行或打车都合适"
+    if km < 30:
+        # 底下的地名库是城市级的，查「西街」这类小地名会解析到外省同名地点，
+        # 所以市内通勤一律提醒用地图 App，别让人拿这个数字去导航
+        result["advice"] = "这段是市内通勤；本工具的路网按城际标定，市内导航请用地图 App"
     elif km < 200:
         result["advice"] = "中短途，高铁/城际大巴比自驾更省力"
     elif km < 1200:

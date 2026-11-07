@@ -60,6 +60,16 @@ def _connect():
             user_id    INTEGER NOT NULL,
             created_at TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS memories (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id    INTEGER NOT NULL,
+            key        TEXT NOT NULL,
+            value      TEXT NOT NULL,
+            source     TEXT NOT NULL DEFAULT 'auto',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(user_id, key)
+        );
         """
     )
     conn.commit()
@@ -209,3 +219,43 @@ def stats():
         s = conn.execute("SELECT COUNT(*) c FROM sessions").fetchone()["c"]
         m = conn.execute("SELECT COUNT(*) c FROM messages").fetchone()["c"]
     return {"users": u, "sessions": s, "messages": m}
+
+
+# ---------------- 长期记忆 ----------------
+
+def memories_get(user_id):
+    with _LOCK:
+        conn = _connect()
+        rows = conn.execute(
+            "SELECT key, value, source, updated_at FROM memories "
+            "WHERE user_id=? ORDER BY updated_at DESC", (user_id,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def memory_set(user_id, key, value, source="auto"):
+    ts = now()
+    with _LOCK:
+        conn = _connect()
+        conn.execute(
+            "INSERT INTO memories (user_id, key, value, source, created_at, updated_at) "
+            "VALUES (?,?,?,?,?,?) "
+            "ON CONFLICT(user_id, key) DO UPDATE SET value=excluded.value, "
+            "source=excluded.source, updated_at=excluded.updated_at",
+            (user_id, key, value, source, ts, ts))
+        conn.commit()
+
+
+def memory_del(user_id, key):
+    with _LOCK:
+        conn = _connect()
+        cur = conn.execute("DELETE FROM memories WHERE user_id=? AND key=?", (user_id, key))
+        conn.commit()
+        return cur.rowcount > 0
+
+
+def memories_clear(user_id):
+    with _LOCK:
+        conn = _connect()
+        cur = conn.execute("DELETE FROM memories WHERE user_id=?", (user_id,))
+        conn.commit()
+        return cur.rowcount

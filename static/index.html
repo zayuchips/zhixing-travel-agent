@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>智行 · 出行规划智能体</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -38,16 +39,18 @@
       <span class="logo">智</span>
       <div><h1>智行</h1><p>出行规划智能体</p></div>
     </div>
-    <button id="new-chat" class="new-chat">＋ 新对话</button>
+    <div class="side-actions">
+      <button id="new-chat" class="new-chat">＋ 新对话</button>
+      <button id="settings-open" class="icon-btn" title="设置" aria-label="设置">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+    </div>
     <div class="side-title">历史对话</div>
     <div id="sessions" class="sessions"></div>
-    <div class="side-foot">
-      <div class="engine" id="engine">规则引擎（无需密钥）</div>
-      <div class="row">
-        <button id="export" class="ghost">导出会话</button>
-        <button id="logout" class="ghost">退出</button>
-      </div>
-    </div>
   </aside>
 
   <main class="main">
@@ -57,7 +60,17 @@
         <p id="chat-sub">说一句话，我去查天气、算路线、排行程</p>
       </div>
       <div class="chips">
-        <span class="chip" id="chip-tools">4 个 MCP 工具</span>
+        <button id="theme-toggle" class="icon-btn" title="切换明暗主题" aria-label="切换明暗主题">
+          <svg class="icon-moon" viewBox="0 0 24 24" width="17" height="17" fill="none"
+               stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
+          </svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" width="17" height="17" fill="none"
+               stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"></path>
+          </svg>
+        </button>
         <span class="chip ok" id="chip-status">在线</span>
       </div>
     </header>
@@ -65,20 +78,91 @@
     <div id="messages" class="messages"></div>
 
     <div class="composer">
-      <div class="quick">
-        <button data-q="长沙未来三天天气">长沙天气</button>
-        <button data-q="从广州到长沙怎么走，开车要多久">广州→长沙多远</button>
-        <button data-q="帮我排长沙3天行程，预算1500，想逛博物馆和吃小吃">排 3 天行程</button>
+      <div class="composer-box">
+        <div id="attach-list" class="attach-list"></div>
+        <textarea id="input" rows="1" placeholder="今天想聊点什么？说说你的出行计划，比如「泉州 2 天，预算 1200，想看古建筑」"></textarea>
+        <div class="composer-tools">
+          <button id="attach-btn" class="icon-btn attach-btn" title="上传文件" aria-label="上传文件">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                 stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+          </button>
+          <div class="quick">
+            <button data-q="长沙未来三天天气">长沙天气</button>
+            <button data-q="从广州到长沙怎么走，开车要多久">广州→长沙多远</button>
+            <button data-q="帮我排长沙3天行程，预算1500，想逛博物馆和吃小吃">排 3 天行程</button>
+          </div>
+          <button id="send" class="send-round" title="发送" aria-label="发送">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+                 stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 19V5M5 12l7-7 7 7"></path>
+            </svg>
+          </button>
+        </div>
       </div>
-      <div class="input-row">
-        <textarea id="input" rows="1" placeholder="比如：11 月 12 号从广州去长沙玩 3 天，预算 1500，想看看博物馆和吃辣"></textarea>
-        <button id="send" class="primary send">发送</button>
-      </div>
-      <p class="foot-note">天气来自 open-meteo，路线来自 OSRM（OpenStreetMap）—— 都是真实数据，不是模型编的。</p>
     </div>
   </main>
 </div>
 
+<!-- ============ 设置 ============ -->
+<div id="settings" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head">
+      <b>设置</b>
+      <button id="settings-close" class="icon-btn" title="关闭" aria-label="关闭">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+             stroke-width="1.9" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>模型 API Key<span id="set-model-hint" class="hint-inline"></span></label>
+        <input id="set-model-key" type="password" placeholder="留空表示不修改" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>高德 Web 服务 Key<span id="set-amap-hint" class="hint-inline"></span></label>
+        <input id="set-amap-key" type="password" placeholder="留空表示不修改" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>智能体模型名</label>
+        <input id="set-pi-model" placeholder="deepseek-v4.1-flash">
+      </div>
+      <div class="field">
+        <label>记忆抽取模型名</label>
+        <input id="set-llm-model" placeholder="deepseek-v4.1-flash">
+      </div>
+      <button id="settings-save" class="primary">保存</button>
+      <p class="hint">保存后写入项目根 <code>.env</code>（已在 .gitignore 里）。改模型会自动重建引擎进程。</p>
+
+      <div class="modal-sep"></div>
+
+      <div class="mem-head">
+        <b>长期记忆</b>
+        <span class="hint" id="mem-count"></span>
+        <button id="mem-clear" class="ghost">清空全部</button>
+      </div>
+      <div class="hint">这些会在每次对话时告诉智能体，跨会话生效。自动抽取或手动添加。</div>
+      <div id="mem-list" class="mem-list"></div>
+      <div class="mem-add">
+        <input id="mem-key" placeholder="比如 常住城市">
+        <input id="mem-value" placeholder="比如 广州">
+        <button id="mem-add" class="ghost">添加</button>
+      </div>
+
+      <div class="modal-sep"></div>
+
+      <div class="account-row">
+        <span class="hint" id="account-name"></span>
+        <button id="logout" class="ghost danger">退出登录</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<input id="file-input" type="file" multiple hidden
+       accept="image/*,.pdf,.docx,.txt,.md,.csv,.json">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>
