@@ -1,0 +1,16 @@
+# 运行时数据（含用户密码哈希，绝不入库）
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/zhixing.db
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 编辑器 / 系统
+.DS_Store
+.idea/
+.vscode/
