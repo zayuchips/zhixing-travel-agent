@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>智行 · 出行规划智能体</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ============ 登录 ============ -->
+<div id="auth" class="auth">
+  <div class="auth-card">
+    <div class="brand big">
+      <span class="logo">智</span>
+      <div>
+        <h1>智行</h1>
+        <p>能说，也会做的出行规划智能体</p>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="login">登录</button>
+      <button class="tab" data-tab="register">注册</button>
+    </div>
+    <form id="auth-form" autocomplete="off">
+      <label>用户名<input id="username" name="username" placeholder="给自己起个名字" maxlength="24" required></label>
+      <label>密码<input id="password" name="password" type="password" placeholder="至少 4 位" maxlength="64" required></label>
+      <button class="primary" type="submit" id="auth-submit">登录</button>
+      <p class="hint" id="auth-msg">老师/助教可直接用体验账号 <b>demo / demo1234</b></p>
+    </form>
+  </div>
+</div>
+
+<!-- ============ 主界面 ============ -->
+<div id="app" class="app hidden">
+  <aside class="side">
+    <div class="brand">
+      <span class="logo">智</span>
+      <div><h1>智行</h1><p>出行规划智能体</p></div>
+    </div>
+    <button id="new-chat" class="new-chat">＋ 新对话</button>
+    <div class="side-title">历史对话</div>
+    <div id="sessions" class="sessions"></div>
+    <div class="side-foot">
+      <div class="engine" id="engine">规则引擎（无需密钥）</div>
+      <div class="row">
+        <button id="export" class="ghost">导出会话</button>
+        <button id="logout" class="ghost">退出</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="top">
+      <div>
+        <h2 id="chat-title">新对话</h2>
+        <p id="chat-sub">说一句话，我去查天气、算路线、排行程</p>
+      </div>
+      <div class="chips">
+        <span class="chip" id="chip-tools">4 个 MCP 工具</span>
+        <span class="chip ok" id="chip-status">在线</span>
+      </div>
+    </header>
+
+    <div id="messages" class="messages"></div>
+
+    <div class="composer">
+      <div class="quick">
+        <button data-q="长沙未来三天天气">长沙天气</button>
+        <button data-q="从广州到长沙怎么走，开车要多久">广州→长沙多远</button>
+        <button data-q="帮我排长沙3天行程，预算1500，想逛博物馆和吃小吃">排 3 天行程</button>
+      </div>
+      <div class="input-row">
+        <textarea id="input" rows="1" placeholder="比如：11 月 12 号从广州去长沙玩 3 天，预算 1500，想看看博物馆和吃辣"></textarea>
+        <button id="send" class="primary send">发送</button>
+      </div>
+      <p class="foot-note">天气来自 open-meteo，路线来自 OSRM（OpenStreetMap）—— 都是真实数据，不是模型编的。</p>
+    </div>
+  </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
