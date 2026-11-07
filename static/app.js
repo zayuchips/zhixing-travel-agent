@@ -205,15 +205,8 @@
     return api("/api/me").then(function (r) {
       state.user = r.user;
       showApp();
-      loadStatus();
       loadSessions();
     });
-  }
-
-  function loadStatus() {
-    api("/api/status").then(function (r) {
-      $("chip-status").textContent = "在线 · v" + r.version;
-    }).catch(function () { $("chip-status").textContent = "离线"; });
   }
 
   function markActive() {
@@ -583,9 +576,39 @@
       else if (c.type === "itinerary") { box.appendChild(planCard(c.data)); }
       else if (c.type === "hotel") { box.appendChild(hotelCard(c.data)); }
       else if (c.type === "poi") { box.appendChild(poiCard(c.data)); }
-      else if (c.type === "expert") { box.appendChild(expertCard(c.data)); }
+      else if (c.type === "files") { box.appendChild(filesCard(c.data)); }
     });
     return box;
+  }
+
+  /* 交付物：排完行程自动生成的文件，放在卡片最下面 */
+  function filesCard(d) {
+    var el = document.createElement("div");
+    el.className = "card files-card";
+    var icons = {
+      html: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
+        'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path>' +
+        '<path d="M14 3v5h5M9 13h6M9 17h4"></path></svg>',
+      docx: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
+        'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path>' +
+        '<path d="M14 3v5h5M8.5 12l1.2 4 1.3-3 1.3 3 1.2-4"></path></svg>'
+    };
+    var rows = (d.items || []).map(function (f) {
+      var kb = f.size ? Math.max(1, Math.round(f.size / 1024)) + " KB" : "";
+      return '<a class="file-row" href="' + escapeHtml(f.url) + '" target="_blank" rel="noopener">' +
+        '<span class="ficon ' + escapeHtml(f.kind) + '">' + (icons[f.kind] || "") + "</span>" +
+        '<span class="fmeta"><b>' + escapeHtml(f.label || f.name) + "</b>" +
+        "<small>" + escapeHtml(f.name) + (kb ? " · " + kb : "") + "</small></span>" +
+        '<span class="fgo">打开</span></a>';
+    }).join("");
+    el.innerHTML =
+      '<div class="card-head"><b>攻略文件 · ' + escapeHtml(d.destination || "") +
+      (d.days ? " " + d.days + " 天" : "") + "</b><span>已生成</span></div>" +
+      '<div class="card-body">' + rows +
+      (d.note ? '<div class="meta">' + escapeHtml(d.note) + "</div>" : "") + "</div>";
+    return el;
   }
 
   function weatherCard(d) {
@@ -858,23 +881,6 @@
     });
   }
 
-  function expertCard(d) {
-    var el = document.createElement("div");
-    el.className = "card";
-    var experts = d.experts || [];
-    var rows = experts.map(function (x) {
-      return '<div class="expert-row"><span class="role">' + escapeHtml(x.role) + "</span>" +
-        '<div class="say">' + md(x.text || "") + "</div></div>";
-    }).join("");
-    el.innerHTML =
-      '<div class="card-head"><b>专家会诊 · ' + escapeHtml(d.city) + "</b><span>" +
-      experts.length + " 位专家 · " + (d.poi_count || 0) + " 个候选点位</span></div>" +
-      '<div class="card-body">' + rows + "</div>" +
-      (d.note ? '<div style="padding:0 16px 12px;font-size:12px;color:var(--muted)">' +
-        escapeHtml(d.note) + "</div>" : "");
-    return el;
-  }
-
   /* 景点图集：点缩略图看大图，可左右翻。照片都来自高德 POI 的 photos 字段。 */
   function openGallery(payload, title) {
     var list = [];
@@ -1096,6 +1102,15 @@
         renderMessage("assistant", res.reply || "", res.steps, res.cards);
         if ($("chat-title").textContent === "新对话") { $("chat-title").textContent = text.slice(0, 18); }
         loadSessions();
+        // 标题由模型后台概括，几秒后才写库，回来再刷一次
+        if (res.title_pending) {
+          setTimeout(function () {
+            loadSessions().then(function () {
+              var cur = (state.sessions || []).filter(function (s) { return s.id === state.sessionId; })[0];
+              if (cur && cur.title) { $("chat-title").textContent = cur.title; }
+            });
+          }, 6000);
+        }
       }
     }
 
@@ -1155,9 +1170,23 @@
   });
 
   /* ---------------- 设置页 ---------------- */
+  function switchPane(name) {
+    Array.prototype.forEach.call(document.querySelectorAll(".mtab"), function (b) {
+      b.classList.toggle("active", b.dataset.pane === name);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".modal-body .pane"), function (p) {
+      p.classList.toggle("active", p.id === "pane-" + name);
+    });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll(".mtab"), function (b) {
+    b.addEventListener("click", function () { switchPane(b.dataset.pane); });
+  });
+
   function openSettings() {
     $("settings").classList.remove("hidden");
-    $("account-name").textContent = state.user ? "当前账号：" + state.user.username : "";
+    switchPane("api");
+    $("account-name").textContent = state.user ? state.user.username : "";
     api("/api/settings").then(function (r) {
       $("set-model-hint").textContent = r.model_set ? "已配置 " + r.model_key : "未配置";
       $("set-amap-hint").textContent = r.amap_set ? "已配置 " + r.amap_key : "未配置（POI 走示例数据）";
@@ -1250,12 +1279,6 @@
   $("input").addEventListener("input", function () {
     this.style.height = "auto";
     this.style.height = Math.min(this.scrollHeight, 140) + "px";
-  });
-  Array.prototype.forEach.call(document.querySelectorAll(".quick button"), function (b) {
-    b.addEventListener("click", function () {
-      $("input").value = b.dataset.q;
-      send();
-    });
   });
 
   /* 自动登录（有 Cookie 就直接进） */

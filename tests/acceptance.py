@@ -314,6 +314,38 @@ def main():
     check("AC-34", "打断：abort 接口返回 aborted 字段",
           code == 200 and "aborted" in ab, ab)
 
+    # ---------- 5.6 交付文件与标题概括 ----------
+    print("\n5.6) 交付文件、标题概括")
+    said = "帮我排泉州一天行程"
+    code, plan_chat, _ = A.req("/api/chat", "POST", {"message": said})
+    types = [c.get("type") for c in plan_chat.get("cards") or []]
+    files_card = next((c for c in plan_chat.get("cards") or []
+                       if c.get("type") == "files"), None)
+    items = (files_card or {}).get("data", {}).get("items") or []
+    check("AC-35", "交付：排出行程后自动生成攻略文件",
+          len(items) == 2, types)
+
+    reachable = []
+    for it in items:
+        fc, payload, _ = A.req(it["url"], "GET", raw=True)
+        reachable.append(fc == 200 and len(payload) > 500)
+    check("AC-35", "交付：两个文件都能直接打开", bool(items) and all(reachable),
+          [it["name"] for it in items])
+
+    pending = plan_chat.get("title_pending")
+    check("AC-36", "标题：新会话标记为待概括", pending is True, pending)
+    new_sid = plan_chat.get("session_id")
+    final = ""
+    for _ in range(6):
+        time.sleep(2)
+        _, ss, _ = A.req("/api/sessions")
+        row = next((s for s in ss.get("sessions") or [] if s["id"] == new_sid), None)
+        final = (row or {}).get("title") or ""
+        if final and not final.startswith(said[:8]):
+            break
+    check("AC-36", "标题：由模型概括而非截首句",
+          bool(final) and not final.startswith(said[:8]) and len(final) <= 20, final)
+
     # ---------- 6. 会话隔离 ----------
     print("\n6) 会话隔离")
     check("FR-09", "本人可读取会话消息",

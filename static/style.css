@@ -445,19 +445,6 @@ html[data-theme="dark"] .icon-moon { display: none; }
   padding: 9px 18px; font-size: 13px; box-shadow: 0 8px 26px var(--shadow); z-index: 90;
 }
 
-/* ================= 专家会诊卡片 ================= */
-.expert-row { display: grid; grid-template-columns: 78px 1fr; gap: 10px;
-  padding: 12px 0; border-top: 1px dashed var(--line); }
-.expert-row:first-child { border-top: 0; padding-top: 4px; }
-.expert-row .role {
-  font-size: 12px; color: var(--accent); border: 1px solid rgba(201, 118, 43, .35);
-  border-radius: 999px; padding: 2px 9px; height: 22px; line-height: 17px;
-  text-align: center; white-space: nowrap;
-}
-.expert-row .say { font-size: 13.5px; line-height: 1.7; min-width: 0; }
-.expert-row .say p { margin: 4px 0; }
-.expert-row .say ul, .expert-row .say ol { margin: 4px 0; padding-left: 18px; }
-
 /* ================= 景点图集 ================= */
 .spot-thumb {
   width: 56px; height: 42px; object-fit: cover; border-radius: 6px;
@@ -490,3 +477,52 @@ html[data-theme="dark"] .icon-moon { display: none; }
   .gallery .g-prev { left: 4px; }
   .gallery .g-next { right: 4px; }
 }
+
+/* ================= 隐藏属性兜底 =================
+   input 的 display:block 会盖掉 UA 的 [hidden]{display:none}，
+   导致 type=file 的选择框露在页面底部。 */
+[hidden] { display: none !important; }
+
+/* ================= 设置页切换栏 ================= */
+.modal-tabs {
+  display: flex; gap: 2px; padding: 0 18px;
+  border-bottom: 1px solid var(--line); position: sticky; top: 57px;
+  background: var(--panel); z-index: 1;
+}
+.mtab {
+  background: none; border: 0; padding: 11px 12px 10px;
+  font: inherit; font-size: 13.5px; color: var(--muted);
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.mtab:hover { color: var(--text); }
+.mtab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.modal-body .pane { display: none; }
+.modal-body .pane.active { display: block; }
+
+.account-label { font-size: 13px; color: var(--text-2); margin-bottom: 4px; }
+.account-row { padding-top: 4px; }
+
+/* 快捷问题清空后不留空白 */
+.quick:empty { display: none; }
+
+/* ================= 交付文件卡片 ================= */
+.files-card { border-color: rgba(201, 118, 43, .3); }
+.file-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 4px; border-top: 1px dashed var(--line);
+  text-decoration: none; color: var(--text); border-bottom: 0;
+}
+.file-row:first-child { border-top: 0; padding-top: 2px; }
+.file-row:hover { background: var(--panel-2); border-radius: 8px; }
+.ficon {
+  flex: none; display: grid; place-items: center; width: 30px; height: 30px;
+  border-radius: 8px; background: var(--panel-2); color: var(--accent);
+  border: 1px solid var(--line);
+}
+.ficon.docx { color: var(--accent-2); }
+.fmeta { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fmeta b { font-size: 13.5px; font-weight: 600; }
+.fmeta small { font-size: 11.5px; color: var(--muted); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.fgo { flex: none; font-size: 12px; color: var(--accent); }

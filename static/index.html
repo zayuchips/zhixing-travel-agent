@@ -71,7 +71,6 @@
             <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"></path>
           </svg>
         </button>
-        <span class="chip ok" id="chip-status">在线</span>
       </div>
     </header>
 
@@ -86,11 +85,7 @@
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
                  stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
           </button>
-          <div class="quick">
-            <button data-q="长沙未来三天天气">长沙天气</button>
-            <button data-q="从广州到长沙怎么走，开车要多久">广州→长沙多远</button>
-            <button data-q="帮我排长沙3天行程，预算1500，想逛博物馆和吃小吃">排 3 天行程</button>
-          </div>
+          <div class="quick"></div>
           <button id="send" class="send-round" title="发送" aria-label="发送">
             <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
                  stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -113,46 +108,61 @@
              stroke-width="1.9" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
       </button>
     </div>
+
+    <div class="modal-tabs" role="tablist">
+      <button class="mtab active" role="tab" data-pane="api">API 配置</button>
+      <button class="mtab" role="tab" data-pane="memory">长期记忆</button>
+      <button class="mtab" role="tab" data-pane="account">账号</button>
+    </div>
+
     <div class="modal-body">
-      <div class="field">
-        <label>模型 API Key<span id="set-model-hint" class="hint-inline"></span></label>
-        <input id="set-model-key" type="password" placeholder="留空表示不修改" autocomplete="off">
-      </div>
-      <div class="field">
-        <label>高德 Web 服务 Key<span id="set-amap-hint" class="hint-inline"></span></label>
-        <input id="set-amap-key" type="password" placeholder="留空表示不修改" autocomplete="off">
-      </div>
-      <div class="field">
-        <label>智能体模型名</label>
-        <input id="set-pi-model" placeholder="deepseek-v4.1-flash">
-      </div>
-      <div class="field">
-        <label>记忆抽取模型名</label>
-        <input id="set-llm-model" placeholder="deepseek-v4.1-flash">
-      </div>
-      <button id="settings-save" class="primary">保存</button>
-      <p class="hint">保存后写入项目根 <code>.env</code>（已在 .gitignore 里）。改模型会自动重建引擎进程。</p>
-
-      <div class="modal-sep"></div>
-
-      <div class="mem-head">
-        <b>长期记忆</b>
-        <span class="hint" id="mem-count"></span>
-        <button id="mem-clear" class="ghost">清空全部</button>
-      </div>
-      <div class="hint">这些会在每次对话时告诉智能体，跨会话生效。自动抽取或手动添加。</div>
-      <div id="mem-list" class="mem-list"></div>
-      <div class="mem-add">
-        <input id="mem-key" placeholder="比如 常住城市">
-        <input id="mem-value" placeholder="比如 广州">
-        <button id="mem-add" class="ghost">添加</button>
+      <!-- 面板一：API 配置 -->
+      <div class="pane active" id="pane-api" role="tabpanel">
+        <div class="field">
+          <label>模型 API Key<span id="set-model-hint" class="hint-inline"></span></label>
+          <input id="set-model-key" type="password" placeholder="留空表示不修改" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>高德 Web 服务 Key<span id="set-amap-hint" class="hint-inline"></span></label>
+          <input id="set-amap-key" type="password" placeholder="留空表示不修改" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>智能体模型名</label>
+          <input id="set-pi-model" placeholder="deepseek-v4.1-flash">
+        </div>
+        <div class="field">
+          <label>记忆抽取模型名</label>
+          <input id="set-llm-model" placeholder="deepseek-v4.1-flash">
+        </div>
+        <button id="settings-save" class="primary">保存</button>
+        <p class="hint">保存后写入项目根 <code>.env</code>（已在 .gitignore 里）。改模型会自动重建引擎进程。</p>
       </div>
 
-      <div class="modal-sep"></div>
+      <!-- 面板二：长期记忆 -->
+      <div class="pane" id="pane-memory" role="tabpanel">
+        <div class="mem-head">
+          <b>已记住的偏好</b>
+          <span class="hint" id="mem-count"></span>
+          <button id="mem-clear" class="ghost">清空全部</button>
+        </div>
+        <p class="hint">这些会在每次对话时告诉智能体，跨会话生效。自动抽取或手动添加。</p>
+        <div id="mem-list" class="mem-list"></div>
+        <div class="mem-add">
+          <input id="mem-key" placeholder="比如 常住城市">
+          <input id="mem-value" placeholder="比如 广州">
+          <button id="mem-add" class="ghost">添加</button>
+        </div>
+      </div>
 
-      <div class="account-row">
-        <span class="hint" id="account-name"></span>
-        <button id="logout" class="ghost danger">退出登录</button>
+      <!-- 面板三：账号 -->
+      <div class="pane" id="pane-account" role="tabpanel">
+        <div class="account-row">
+          <div>
+            <div class="account-label">当前登录</div>
+            <div class="hint" id="account-name"></div>
+          </div>
+          <button id="logout" class="ghost danger">退出登录</button>
+        </div>
       </div>
     </div>
   </div>

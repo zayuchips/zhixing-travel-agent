@@ -28,7 +28,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import config  # noqa: E402
 import db  # noqa: E402
 from agent import Agent  # noqa: E402
-from agent import attachments, guide, pi_bridge  # noqa: E402
+from agent import attachments, guide, pi_bridge, titler  # noqa: E402
 from mcp import protocol  # noqa: E402
 from mcp import registry  # noqa: E402
 from mcp.tools import register_all  # noqa: E402
@@ -344,7 +344,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._error(400, "消息太长了，请控制在 500 字以内")
             sid = body.get("session_id")
             if not sid:
-                sid = db.create_session(user["id"], text[:18])
+                sid = db.create_session(user["id"])  # 标题由模型首轮后概括，先留空
             else:
                 try:
                     sid = int(sid)
@@ -395,9 +395,14 @@ class Handler(BaseHTTPRequestHandler):
                 db.add_message(sid, "assistant", result["reply"], result["steps"], result["cards"])
                 sessions = db.list_sessions(user["id"])
                 title = next((s["title"] for s in sessions if s["id"] == sid), "新对话")
-                if title == "新对话":
+                fresh = title == "新对话"
+                if fresh:
                     db.rename_session(sid, user["id"], text[:18])
+                    result["title_pending"] = True
                 emit({"t": "done", "result": result, "session_id": sid})
+                if fresh:
+                    # 截断标题只是占位，模型概括的标题几秒后写库，前端会再拉一次列表
+                    titler.name_async(sid, user["id"], text, result["reply"])
             except (BrokenPipeError, ConnectionResetError):
                 pass  # 用户中途关页面，正常现象
             except Exception as e:  # noqa: BLE001
@@ -418,7 +423,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._error(400, "消息太长了，请控制在 500 字以内")
             sid = body.get("session_id")
             if not sid:
-                sid = db.create_session(user["id"], text[:18])
+                sid = db.create_session(user["id"])  # 标题由模型首轮后概括，先留空
             else:
                 try:
                     sid = int(sid)
@@ -432,9 +437,13 @@ class Handler(BaseHTTPRequestHandler):
             db.add_message(sid, "assistant", result["reply"], result["steps"], result["cards"])
             sessions = db.list_sessions(user["id"])
             title = next((s["title"] for s in sessions if s["id"] == sid), "新对话")
-            if title == "新对话":
+            fresh = title == "新对话"
+            if fresh:
                 db.rename_session(sid, user["id"], text[:18])
-            result.update({"ok": True, "session_id": sid})
+            result.update({"ok": True, "session_id": sid, "title_pending": fresh})
+            if fresh:
+                # 先给个临时标题让界面有东西显示，模型概括好的标题后台补上
+                titler.name_async(sid, user["id"], text, result["reply"])
             return self._json(result)
 
         return self._error(404, "接口不存在：%s" % path)

@@ -16,10 +16,18 @@ from .weather import get_forecast
 INTEREST_KEYWORDS = {
     "美食": ["美食街", "小吃"],
     "历史": ["古迹", "历史建筑"],
+    "古建筑": ["古迹", "古建筑", "寺庙"],
+    "建筑": ["古迹", "历史建筑"],
+    "古镇": ["古镇", "古迹"],
+    "寺庙": ["寺庙", "宗教"],
+    "宗教": ["宗教", "寺庙"],
     "博物馆": ["博物馆"],
     "文化": ["博物馆", "古迹"],
     "自然": ["公园", "风景名胜"],
     "爬山": ["风景名胜", "山"],
+    "海滨": ["海滨", "海滩"],
+    "海岛": ["海岛", "风景名胜"],
+    "温泉": ["温泉"],
     "夜景": ["观景台", "夜景"],
     "夜游": ["夜景", "步行街"],
     "购物": ["购物中心", "商业街"],
@@ -32,18 +40,31 @@ INTEREST_KEYWORDS = {
 INTEREST_TYPES = {
     "美食": ["餐饮", "美食"],
     "历史": ["风景名胜", "文物古迹", "宗教"],
+    "古建筑": ["文物古迹", "寺庙道观", "风景名胜"],
+    "建筑": ["文物古迹", "风景名胜"],
+    "古镇": ["风景名胜", "文物古迹"],
+    "寺庙": ["寺庙道观", "宗教"],
+    "宗教": ["寺庙道观", "宗教"],
     "博物馆": ["博物馆", "科教文化"],
     "文化": ["博物馆", "文物古迹"],
     "自然": ["公园", "风景名胜"],
     "爬山": ["风景名胜"],
-    "夜景": ["风景名胜", "观景"],
+    "海滨": ["风景名胜"],
+    "海岛": ["风景名胜"],
+    "温泉": ["风景名胜", "休闲娱乐"],
+    "夜景": ["风景名胜"],
     "夜游": ["风景名胜", "购物"],
     "购物": ["购物", "商场"],
-    "亲子": ["动物园", "科教文化", "公园"],
-    "遛娃": ["动物园", "科教文化"],
-    "拍照": ["风景名胜", "文物古迹"],
-    "打卡": ["风景名胜", "地标"],
+    "亲子": ["科教文化", "公园", "动物园"],
+    "遛娃": ["科教文化", "动物园"],
+    "拍照": ["风景名胜"],
+    "打卡": ["风景名胜"],
 }
+
+# 这些不是「去逛的景点」。高德会把夜市、学生街、商业街也归到风景名胜类，
+# 搜「景点」时它们排在前面，结果整张行程表全是吃的地方，一个古迹都没有。
+MEAL_SPOT_HINTS = ("美食街", "小吃街", "夜市", "学生街", "美食广场", "大排档")
+
 INDOOR_HINT = ("博物馆", "科技馆", "美术馆", "展览", "购物", "商场", "影剧", "宗教")
 MEAL_PRICE = {"breakfast": 25, "lunch": 45, "dinner": 60}
 TRANSPORT_PER_DAY = {"步行": 0, "公交": 20, "自驾": 80}
@@ -117,11 +138,14 @@ def _ticket_price(p):
     return int(p.get("cost") or 0)
 
 
-def _gather(city, keywords, need):
+def _gather(city, keywords, need, drop_meal_spots=False):
     """按关键词搜真实点位并去重，返回 (候选列表, 数据来源)。
 
     单个关键词失败不影响其他关键词；来源取最后一次成功的结果。
     关键词之间留一点间隔：高德个人 Key 的 QPS 很低，连发会触发 CUQPS_HAS_EXCEEDED。
+
+    drop_meal_spots：用户兴趣不是吃的时候，把夜市、小吃街、学生街剔掉。
+    高德把这些也归进风景名胜类，不过滤的话排出来整趟都在逛小吃街。
     """
     pool, seen, src = [], set(), "amap"
     for idx, kw in enumerate(keywords):
@@ -135,6 +159,8 @@ def _gather(city, keywords, need):
         for it in r.get("items") or []:
             key = it.get("id") or it.get("name")
             if not key or key in seen or not it.get("name"):
+                continue
+            if drop_meal_spots and any(h in (it.get("name") or "") for h in MEAL_SPOT_HINTS):
                 continue
             seen.add(key)
             pool.append(it)
@@ -174,7 +200,9 @@ def build_plan(destination, days=2, start_date=None, end_date=None, interests=No
     # 注意：不能因为「城市不在 cities.json 里」就直接给模板——配了高德 Key 之后，
     # 全国任意城市都应该能搜到真实 POI。收不收录只影响本地降级数据集。
     need = min(days * 3 + 3, 25)
-    pois, source = _gather(city, _keywords_for(interests), need)
+    # 用户想逛吃购物时保留夜市小吃街；想看书古建时就别让它们占坑位
+    want_eat = any(k in ("美食", "小吃", "夜游", "夜市", "购物") for k in (interests or []))
+    pois, source = _gather(city, _keywords_for(interests), need, drop_meal_spots=not want_eat)
 
     if pois:
         tagline = "按兴趣与口碑排序"

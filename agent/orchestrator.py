@@ -9,10 +9,11 @@
     Pi 说的是 JSONL 事件流，浏览器拿不到子进程；而且工具结果要落库、要按用户隔离。
     这一层就是「协议适配 + 落库」。
 """
+import os
 import time
 
 import config
-from . import checker, fallback, memory, pi_bridge
+from . import checker, fallback, guide, memory, pi_bridge
 from . import attachments as attach_mod
 
 # 降级时附在回复末尾的说明。不用小字糊弄过去——用户必须知道这不是智能体在思考。
@@ -66,12 +67,18 @@ class Agent(object):
             reply, steps, cards = fallback.respond(text)
             steps.insert(0, {"title": "降级模式", "kind": "warn",
                              "detail": "Pi 未就绪（%s），改用本地规则编排；工具与数据仍然真实" % reason})
+            bundle = self._deliver(cards)
+            if bundle:
+                cards.append(bundle)
             return self._pack(reply + _NOTE, steps, cards, "fallback", {}, started)
 
         if _model_down():
             reply, steps, cards = fallback.respond(text)
             steps.insert(0, {"title": "降级模式", "kind": "warn",
                              "detail": "模型最近调用失败，冷却期内直接走本地规则编排"})
+            bundle = self._deliver(cards)
+            if bundle:
+                cards.append(bundle)
             return self._pack(reply + _NOTE, steps, cards, "fallback", {}, started)
 
         steps, cards, chunks = [], [], []
@@ -191,6 +198,9 @@ class Agent(object):
             steps.extend(fb_steps)
             steps.insert(0, {"title": "降级模式", "kind": "warn",
                              "detail": state["msg"] or err or "Pi 没有返回内容"})
+            bundle = self._deliver(fb_cards)
+            if bundle:
+                fb_cards.append(bundle)
             return self._pack(fb_reply + _NOTE, steps, fb_cards, "fallback", {}, started)
 
         steps.append({"title": "编排回复", "kind": "compose",
@@ -209,7 +219,46 @@ class Agent(object):
                     for i in issues)
             break
 
+        # 交付物：排出行程就落地成文件，用户要的是能发给同伴的成品
+        bundle = self._deliver(cards)
+        if bundle:
+            cards.append(bundle)
+            steps.append({"title": "生成攻略文件", "kind": "deliver",
+                          "detail": "HTML 与 docx 已生成，点卡片可直接打开或下载"})
+
         return self._pack(reply, steps, cards, "pi", {}, started)
+
+    @staticmethod
+    def _deliver(cards):
+        """有行程卡片就渲染成独立攻略文件，返回一张文件卡片。
+
+        放在这里而不是让用户手点导出：对话里给完结论就该有成品，
+        多一步点击就多一次流失。
+        """
+        plan = next((c["data"] for c in cards if c.get("type") == "itinerary"), None)
+        if not plan:
+            return None
+        items = []
+        for kind, save in (("html", guide.save_html), ("docx", guide.save_docx)):
+            try:
+                url, path = save(plan)
+            except Exception:  # noqa: BLE001 文件生成失败不该让整轮对话崩掉
+                continue
+            items.append({
+                "kind": kind,
+                "url": url,
+                "name": os.path.basename(path),
+                "size": os.path.getsize(path),
+                "label": "网页版攻略" if kind == "html" else "Word 文档",
+            })
+        if not items:
+            return None
+        return {"type": "files", "data": {
+            "destination": plan.get("destination"),
+            "days": plan.get("days_count"),
+            "items": items,
+            "note": "排版好的完整攻略，可直接发给同伴；Word 版能自己改。",
+        }}
 
     # ---------------- 文字与摘要 ----------------
     @staticmethod

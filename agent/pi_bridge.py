@@ -274,7 +274,8 @@ _CARD = {
     "hotel_search": "hotel",
     "poi_search_places": "poi",
     "poi_get_detail": "poi",
-    "expert_convene": "expert",
+    # expert.convene 故意不做卡片：专家意见是给主智能体消化的素材，
+    # 由它改写成连贯回答，前端不应该把「某专家说」原样列出来。
 }
 
 
