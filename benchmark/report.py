@@ -34,6 +34,22 @@ def _rows(path):
         return list(csv.DictReader(f))
 
 
+def _vals(row):
+    """评测器按「最多约束数」建列，短题后面是空单元格，不能当 0 算。"""
+    out = []
+    for k, v in row.items():
+        if k == "data_id":
+            continue
+        s = str(v).strip()
+        if not s:
+            continue
+        try:
+            out.append(int(float(s)))
+        except (ValueError, TypeError):
+            pass
+    return out
+
+
 def _last_usage(uid):
     p = os.path.join(RUNTIME, "logs", uid + ".usage.jsonl")
     if not os.path.isfile(p):
@@ -66,14 +82,14 @@ def main():
                 q = json.load(io.open(os.path.join(qdir, fn), encoding="utf-8"))
                 uid2subset[fn[:-5]] = q.get("_subset") or "unknown"
 
-    schema = {r["data_id"]: int(float(r["schema"])) for r in _rows(os.path.join(er, "schema.csv"))}
+    schema = {r["data_id"]: int(float(r["schema"] or 0)) for r in _rows(os.path.join(er, "schema.csv"))}
     commonsense = {}
     for r in _rows(os.path.join(er, "commonsense.csv")):
-        vals = [int(float(v)) for k, v in r.items() if k != "data_id"]
+        vals = _vals(r)
         commonsense[r["data_id"]] = (1.0 - sum(vals) / len(vals)) if vals else 0.0
     logical = {}
     for r in _rows(os.path.join(er, "logical_py.csv")):
-        vals = [int(float(v)) for k, v in r.items() if k != "data_id"]
+        vals = _vals(r)
         logical[r["data_id"]] = (sum(vals) / len(vals) if vals else 0.0,
                                  1.0 if vals and all(vals) else 0.0)
 
