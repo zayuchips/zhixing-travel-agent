@@ -61,6 +61,8 @@ AMAP_DRIVING_URL = "https://restapi.amap.com/v3/direction/driving"
 PI_BIN = os.environ.get("PI_BIN", "pi")
 PI_MODEL = os.environ.get("PI_MODEL", "")
 PI_PROVIDER = os.environ.get("PI_PROVIDER", "")
+# 系统提示词文件；留空用项目根的 SYSTEM.md。参赛模式会指向 benchmark/SYSTEM.md
+PI_SYSTEM_PROMPT = os.environ.get("PI_SYSTEM_PROMPT", "")
 PI_TIMEOUT = float(os.environ.get("PI_TIMEOUT", "120"))
 # 每个登录会话一个长驻子进程；超过这个数量就关掉最久没用的那个
 PI_MAX_SESSIONS = int(os.environ.get("PI_MAX_SESSIONS", "6"))
