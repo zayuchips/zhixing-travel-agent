@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """专家会诊：把一次「深度规划」拆成 4 个角色，各自独立出意见。
 
-和上一版「复核 Agent」的区别：
-    复核只有 1 个角色，在行程排完之后挑错。
-    会诊是在排行程之前开会——景点专家先说该去哪些、天气专家说哪天不适宜、
-    酒店专家说住哪一片、规划师最后串成路线。角色之间互相独立，不共享上下文。
+和「复核 Agent」的区别：复核只有 1 个角色、在排完行程后挑错；
+会诊是在排行程之前开会——景点、天气、酒店、美食四位专家各管一摊，
+角色之间互相独立，不共享上下文。
 
 调用方是主智能体（Pi）。它看到工具描述，自己判断用户是不是要「完整攻略/深度规划」，
 要才调；日常问一句天气不会走这条重路径。
@@ -47,9 +46,17 @@ ROLES = [
     ("酒店专家", """你是住宿顾问。基于给定的酒店候选，推荐住哪一片区域、选哪一档，
 并说明理由（位置/价格/评分）。
 输出要求：2-4 条要点，每条一行。价格一律注明是估算值。信息缺口要如实说。"""),
+
+    ("美食专家", """你是本地美食顾问。基于给定的餐厅候选，给出能落地的吃法建议。
+输出要求：3-6 条要点，每条一行，格式「餐厅名 —— 推荐理由 / 适合哪一餐 / 人均（元）」。
+要做的事：
+- 按早/午/晚把候选分进合适的餐次，避免一天三顿都排同一家或全排成夜市；
+- 点出当地值得试的品类和避坑提示（比如景区店里别点、老字号要排队）；
+- 把人均价格口径说清楚：高德的 cost 是人均消费，不是某道菜的价格；没有就写「未取到」。
+只从候选里挑，不要编造不存在的店名或招牌菜。若候选明显不适合（如加油站便利店），直接说排除。"""),
 ]
 
-CONCURRENCY = 3
+CONCURRENCY = 4
 
 
 def _ask(role, system, context):
@@ -74,7 +81,7 @@ def _ask(role, system, context):
     return text.strip()
 
 
-def _context(city, days, interests, budget, pois, weather, hotels):
+def _context(city, days, interests, budget, pois, weather, hotels, meals=None):
     lines = ["目的地：%s　天数：%s 天　偏好：%s　预算：%s" % (
         city, days, "、".join(interests) if interests else "无特别偏好",
         ("%s 元" % budget) if budget else "未指定")]
@@ -102,12 +109,25 @@ def _context(city, days, interests, budget, pois, weather, hotels):
                 h.get("name"), h.get("rating") or "无", h.get("price_per_night"),
                 ("距首个景点 %s km" % h["distance_km"]) if h.get("distance_km") is not None else ""))
 
+    lines.append("\n[餐厅候选 %d 家（cost 为人均消费，非菜品价格）]" % len(meals or []))
+    for m in (meals or [])[:12]:
+        bits = [m.get("name") or "", (m.get("type") or "").split(";")[-1]]
+        if m.get("rating"):
+            bits.append("评分 %s" % m["rating"])
+        if m.get("cost"):
+            bits.append("人均 %s 元" % m["cost"])
+        if m.get("address"):
+            bits.append(m["address"])
+        lines.append("- " + "　".join([b for b in bits if b]))
+    if not meals:
+        lines.append("- 没取到餐厅候选，请直接说明这项缺失，不要凭印象推荐。")
+
     lines.append("\n请只基于以上信息作答。信息不足就直接说缺什么，不要编。")
     return "\n".join(lines)
 
 
 @register("expert.convene",
-          "召集景点、天气、酒店三位专家并行会诊，各自给出独立意见（排程仍由 itinerary 工具完成）。"
+          "召集景点、天气、酒店、美食四位专家并行会诊，各自给出独立意见（排程仍由 itinerary 工具完成）。"
           "适用于用户要「完整攻略」「深度规划」「认真安排」这类需要多角度权衡的请求；"
           "日常单点提问（今天天气、多远）不要用这个，太慢。", _SCHEMA)
 def convene(city, days, interests=None, budget=None, origin=None):
@@ -153,9 +173,25 @@ def convene(city, days, interests=None, budget=None, origin=None):
     except ToolError:
         pass
 
-    ctx = _context(city, days, interests, budget, pois, weather, hotels)
+    # 美食专家的素材：餐厅候选。关键词按用户偏好微调，最多两次检索控住 QPS。
+    meals, meal_seen = [], set()
+    meal_kws = ["美食", "小吃"]
+    if any("老字号" in i or "本地" in i for i in interests):
+        meal_kws = ["老字号", "本地菜"]
+    for kw in meal_kws:
+        try:
+            r = poi_tool.search_places(city, kw, limit=10)
+        except ToolError:
+            continue
+        for it in r.get("items") or []:
+            key = it.get("id") or it.get("name")
+            if key and key not in meal_seen and it.get("name"):
+                meal_seen.add(key)
+                meals.append(it)
 
-    # ---- 三位专家互不依赖，并行发言；顺序乱了也没关系，按 ROLES 顺序整理输出 ----
+    ctx = _context(city, days, interests, budget, pois, weather, hotels, meals)
+
+    # ---- 四位专家互不依赖，并行发言；顺序乱了也没关系，按 ROLES 顺序整理输出 ----
     from concurrent.futures import ThreadPoolExecutor
 
     def one(item):
@@ -173,7 +209,8 @@ def convene(city, days, interests=None, budget=None, origin=None):
     return {
         "city": city, "days": days,
         "interests": interests, "budget": budget,
-        "poi_count": len(pois), "weather_days": len(weather), "hotel_count": len(hotels),
+        "poi_count": len(pois), "weather_days": len(weather),
+        "hotel_count": len(hotels), "meal_count": len(meals),
         "experts": opinions,
-        "note": "三位专家并行发言，意见可能不一致；行程以 itinerary 卡片为准，冲突处按实际情况取舍。",
+        "note": "四位专家并行发言，意见可能不一致；行程以 itinerary 为准，冲突处按实际情况取舍。",
     }
