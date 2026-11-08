@@ -69,7 +69,7 @@ class Agent(object):
                              "detail": "Pi 未就绪（%s），改用本地规则编排；工具与数据仍然真实" % reason})
             bundle = self._deliver(cards)
             if bundle:
-                cards.append(bundle)
+                cards = [bundle]
             return self._pack(reply + _NOTE, steps, cards, "fallback", {}, started)
 
         if _model_down():
@@ -78,7 +78,7 @@ class Agent(object):
                              "detail": "模型最近调用失败，冷却期内直接走本地规则编排"})
             bundle = self._deliver(cards)
             if bundle:
-                cards.append(bundle)
+                cards = [bundle]
             return self._pack(reply + _NOTE, steps, cards, "fallback", {}, started)
 
         steps, cards, chunks = [], [], []
@@ -200,7 +200,7 @@ class Agent(object):
                              "detail": state["msg"] or err or "Pi 没有返回内容"})
             bundle = self._deliver(fb_cards)
             if bundle:
-                fb_cards.append(bundle)
+                fb_cards = [bundle]
             return self._pack(fb_reply + _NOTE, steps, fb_cards, "fallback", {}, started)
 
         steps.append({"title": "编排回复", "kind": "compose",
@@ -222,26 +222,49 @@ class Agent(object):
         # 交付物：排出行程就落地成文件，用户要的是能发给同伴的成品
         bundle = self._deliver(cards)
         if bundle:
-            cards.append(bundle)
             steps.append({"title": "生成攻略文件", "kind": "deliver",
-                          "detail": "HTML 与 docx 已生成，点卡片可直接打开或下载"})
+                          "detail": "天气、酒店、行程、预算、地图都编进文件了，点卡片直接看"})
+            # 明细已经进了文件，会话里只留文件卡片，不重复刷屏
+            cards = [bundle]
 
         return self._pack(reply, steps, cards, "pi", {}, started)
 
     @staticmethod
     def _deliver(cards):
-        """有行程卡片就渲染成独立攻略文件，返回一张文件卡片。
+        """把这一轮拿到的数据编成一份攻略文件，返回一张文件卡片。
 
-        放在这里而不是让用户手点导出：对话里给完结论就该有成品，
-        多一步点击就多一次流失。
+        设计上把天气、酒店、交通也一起塞进文件：用户在会话里看到一堆卡片，
+        真正要转发给同伴时还得重新整理一遍。给一份文件更实用。
+
+        放在服务端自动做而不是让用户点导出：对话里给完结论就该有成品。
         """
         plan = next((c["data"] for c in cards if c.get("type") == "itinerary"), None)
         if not plan:
             return None
+
+        # 同一轮其它工具的原始结果，用来把天气、酒店、城际交通编进攻略
+        extras = {}
+        hotels = []
+        for c in cards:
+            kind = c.get("type")
+            if kind == "weather" and "weather" not in extras:
+                extras["weather"] = c["data"]
+            elif kind == "route" and "route" not in extras:
+                extras["route"] = c["data"]
+            elif kind == "hotel":
+                hotels.extend(c["data"].get("items") or [])
+            elif kind == "poi" and "pois" not in extras:
+                extras["pois"] = c["data"].get("items") or []
+        if hotels:
+            extras["hotels"] = hotels
+
         items = []
         for kind, save in (("html", guide.save_html), ("docx", guide.save_docx)):
             try:
-                url, path = save(plan)
+                if kind == "html":
+                    url, path = save(plan, None, None, extras)
+                else:
+                    url, path = save(plan)
             except Exception:  # noqa: BLE001 文件生成失败不该让整轮对话崩掉
                 continue
             items.append({
@@ -253,11 +276,19 @@ class Agent(object):
             })
         if not items:
             return None
+
+        parts = ["%d 天行程" % (plan.get("days_count") or 1)]
+        if extras.get("weather"):
+            parts.append("天气")
+        if extras.get("hotels"):
+            parts.append("%d 家酒店" % len(extras["hotels"]))
+        if any(c.get("type") == "poi" for c in cards):
+            parts.append("点位地图")
         return {"type": "files", "data": {
             "destination": plan.get("destination"),
             "days": plan.get("days_count"),
             "items": items,
-            "note": "排版好的完整攻略，可直接发给同伴；Word 版能自己改。",
+            "note": "完整攻略（含%s）已生成，可直接发同伴；Word 版能自己改。" % "、".join(parts),
         }}
 
     # ---------------- 文字与摘要 ----------------

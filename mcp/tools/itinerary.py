@@ -138,6 +138,17 @@ def _ticket_price(p):
     return int(p.get("cost") or 0)
 
 
+# 这些地方晚上基本不开门。高德类型里「寺庙道观」「博物馆」最常见，
+# 把它们排到 19:30 用户到了只能看大门。
+NIGHT_CLOSED_HINTS = ("寺庙", "道观", "博物馆", "纪念馆", "美术馆", "科技馆",
+                      "文庙", "祠", "清真", "教堂", "书院", "遗址")
+
+
+def _night_ok(p):
+    text = (p.get("type") or "") + (p.get("name") or "")
+    return not any(h in text for h in NIGHT_CLOSED_HINTS)
+
+
 def _gather(city, keywords, need, drop_meal_spots=False):
     """按关键词搜真实点位并去重，返回 (候选列表, 数据来源)。
 
@@ -251,21 +262,35 @@ def build_plan(destination, days=2, start_date=None, end_date=None, interests=No
         items, day_attr, day_meals = [], [], []
         outdoor_fallback = False
 
-        def take(only_indoor):
+        def take(only_indoor, night=False):
+            """挑一个没用过的点位。
+
+            night=True（19:30 槽）时优先跳过晚上关门的地方；
+            全是关门点就退回第一个可用的——排上但会在 note 里提醒。
+            """
+            standby = None
             for p in ranked:
                 key = p.get("name")
                 if key in used:
                     continue
                 if rainy and only_indoor and not _is_indoor(p):
                     continue
+                if night and not _night_ok(p):
+                    if standby is None:
+                        standby = p
+                    continue
                 used.add(key)
                 return p
+            if night and standby is not None:
+                used.add(standby["name"])
+                return standby
             return None
 
         for clock, slot in slots:
-            pick = take(True)
+            night = clock == "19:30"
+            pick = take(True, night=night)
             if pick is None and rainy:
-                pick = take(False)
+                pick = take(False, night=night)
                 if pick is not None:
                     outdoor_fallback = True
             if pick is None:
