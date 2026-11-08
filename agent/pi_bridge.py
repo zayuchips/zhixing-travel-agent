@@ -11,8 +11,9 @@ RPC 模式正是官方为「非 Node 集成」准备的（JSONL over stdin/stdou
 为什么加 --no-builtin-tools：Pi 本职是编程助手，默认带 read/write/edit/bash。
 关掉之后它只剩我们通过 MCP 挂上去的业务工具，等于从编程 agent 被裁成领域 agent。
 
-系统提示放在项目根的 SYSTEM.md（Pi 会按项目加载），不走命令行参数——
-避免 Windows 下经 cmd 转义中文导致的乱码。
+系统提示用 --system-prompt <path> 显式传入。Pi 自动发现的是 AGENTS.md / CLAUDE.md，
+不认 SYSTEM.md；以前只把文件放在项目根，提示词其实一直没生效。
+传路径而不是把中文塞进命令行，避免 Windows 下经 cmd 转义乱码。
 """
 import json
 import os
@@ -66,6 +67,11 @@ def _args(session_key):
         "--session-dir", os.path.join(config.DATA_DIR, "pi-sessions"),
         "--no-builtin-tools",
     ]
+    # 参赛模式会通过 config.PI_SYSTEM_PROMPT 换成自己的提示词文件
+    prompt_file = getattr(config, "PI_SYSTEM_PROMPT", None) or os.path.join(
+        config.BASE_DIR, "SYSTEM.md")
+    if os.path.isfile(prompt_file):
+        args += ["--system-prompt", prompt_file]
     if config.PI_PROVIDER:
         args += ["--provider", config.PI_PROVIDER]
     if config.PI_MODEL:
