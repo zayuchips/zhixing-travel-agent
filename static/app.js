@@ -1216,7 +1216,9 @@
       $("settings-save").disabled = false;
       $("settings-save").textContent = "已保存";
       setTimeout(function () { $("settings-save").textContent = "保存"; }, 1500);
-      loadStatus();
+      // v2 删掉了顶部状态条，loadStatus 已不存在；这里做存在性检查，
+      // 否则保存成功后会抛 ReferenceError，前端误报「保存失败」。
+      if (typeof loadStatus === "function") { loadStatus(); }
       openSettings();
     }).catch(function (e) {
       $("settings-save").disabled = false;
