@@ -228,6 +228,7 @@ Pi 会把工具名规范化：点号不合法，`weather.get_forecast` → `mcp_
 | `PI_BIN` | `pi` | pi 可执行文件；没全局装可写 `node /path/to/cli.js` |
 | `PI_PROVIDER` | 空 | provider 名，如 `dashscope` / `anthropic` |
 | `PI_MODEL` | 空 | 模型 ID，如 `deepseek-v4.1-flash` |
+| `PI_SYSTEM_PROMPT` | 空 | 系统提示词文件路径；留空用项目根 `SYSTEM.md` |
 | `PI_TIMEOUT` | `120` | 单轮对话等待上限（秒） |
 | `PI_MAX_SESSIONS` | `6` | 同时存活的 Pi 子进程上限，LRU 淘汰 |
 | `OSRM_URL` | `http://router.project-osrm.org/route/v1/driving` | 路网服务；用 http 是因为 macOS 自带 Python 3.9 链 LibreSSL |
@@ -498,7 +499,7 @@ pi --mode rpc \
 | `--mode rpc` | JSONL over stdin/stdout，官方为「非 Node 集成」准备，Python 可直接驱动 |
 | `--session-id` | 会话持久化。**不是** `--no-session`——多轮上下文（「那第二天呢」）由 Pi 自己维护，我们不用拼历史 |
 | `--no-builtin-tools` | 关掉 Pi 自带的 read / write / edit / bash。它本职是编程助手，关掉后只剩业务工具，等于裁成领域 agent |
-| 系统提示 | 放在项目根 `SYSTEM.md`，不走命令行参数（Windows 下中文经 cmd 会乱码） |
+| 系统提示 | 通过 `--system-prompt <path>` 显式指向项目根 `SYSTEM.md`。**Pi 自动发现的上下文文件是 `AGENTS.md` / `CLAUDE.md`，不认 `SYSTEM.md`**——早期只把文件放在根目录，提示词其实一直没生效（2026-11-08 修复）。传路径而非中文文本，避免 Windows 下经 cmd 转义乱码；`PI_SYSTEM_PROMPT` 可覆盖 |
 
 **代价说清楚**：`python server.py` 不再是唯一前置，还需要 Node、pi、模型凭据才能拿到「真正的智能体」体验。换来的是多轮工具编排、失败重试和上下文管理，而不是写死的 `if/elif`。
 
@@ -784,7 +785,9 @@ def bar(city):
 
 ### 10.2 改提示词
 
-`SYSTEM.md` 是 Pi 的系统提示，改完**重启服务**才生效（Pi 子进程启动时读）。硬性规则集中在前 20 行，写约束时尽量给反例而不是抽象要求——实测「不要叙述执行过程」配上「我先查了天气」这种具体例句，模型才真的不写。
+`SYSTEM.md` 是 Pi 的系统提示（`pi_bridge._args()` 用 `--system-prompt` 显式传入），改完**重启服务**才生效（Pi 子进程启动时读）。硬性规则集中在前 20 行，写约束时尽量给反例而不是抽象要求——实测「不要叙述执行过程」配上「我先查了天气」这种具体例句，模型才真的不写。
+
+> 曾踩过的坑：Pi 自动加载的是 `AGENTS.md` / `CLAUDE.md`。只把文件命名为 `SYSTEM.md` 放在项目根，Pi 根本不会读；之前反复调整约束却效果不稳，根因就在这里。
 
 ### 10.3 代码风格
 
@@ -934,6 +937,7 @@ Pi 会规范化工具名（点号不合法，转成下划线）。`pi_bridge.py`
 | 2026-11-08 凌晨 | 界面第一轮 | 明暗主题、卡片式输入区、会话管理、Markdown 渲染、高德瓦片地图、专家会诊 |
 | 2026-11-08 上午 | 交付物 | 攻略文件编入全部明细、会话只留文件卡片、会话标题模型概括、夜间槽过滤 |
 | 2026-11-08 上午 | 美食专家 | 会诊扩到四位；完成 ChinaTravel benchmark 可行性实测 |
+| 2026-11-08 下午 | 提示词修复 | 发现 `SYSTEM.md` 从未被 Pi 加载（Pi 只认 `AGENTS.md`），改为 `--system-prompt <path>` 显式传入；修复后回复不再叙述执行过程，62 项验收仍全过。同期开出 `feature/chinatravel` 实验分支 |
 
 当前验收：**62 项通过 / 0 失败 / 1 跳过**。
 
