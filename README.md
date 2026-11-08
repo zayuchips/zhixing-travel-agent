@@ -709,7 +709,7 @@ python tests/acceptance.py
 
 ## 9 ChinaTravel benchmark 评测尝试
 
-> 本节记录一次可行性验证，环境在仓库外的 `旅行智能体/_bench/ChinaTravel`，不属于本项目的交付代码。
+> 本节记录从「可行性摸底」到「实际接入并跑 18 条」的完整来龙去脉。评测环境在仓库外的 `旅行智能体/_bench/ChinaTravel`，实验代码在 `feature/chinatravel` 分支，都不属于主产品的交付代码。
 
 ### 9.1 它是什么
 
@@ -733,7 +733,7 @@ python tests/acceptance.py
 | 模型接入 | 现有百炼 Key + OpenAI 兼容端点可用，`Act` agent 跑完 21 步工具调用 |
 | `--agent Act` 最后 `plan()` 返回空 | 42K 字符 oneshot prompt + 推理模型长上下文；单独测 `json_mode` 正常。换 `RuleNeSy` 跑通 |
 
-### 9.3 实测结果
+### 9.3 基准自带 baseline（1 条 smoke，仅验证评测链路）
 
 ```
 python run_exp.py  --splits smoke --agent RuleNeSy --llm rule --lang zh     # EXIT=0
@@ -749,11 +749,32 @@ All pass ratio:        0.0        # 仅 1 条样本，不作成绩看
 
 评测器要求 plan 里的**实体名精确匹配它的 sandbox**（"Query, plan, and DSL entity names must match the installed sandbox exactly"）。我们的高德 POI 叫「泉州大开元寺」，它库里可能叫「开元寺」；我们酒店价是按档位估的，它要具体房价；我们压根不查 `TrainID` 和地铁换乘。硬约束 grounding 这一关会全挂。
 
-### 9.5 如果要接
+### 9.5 后来真的接进去了（`feature/chinatravel` 分支）
 
-入口是现成的：`python -m agent_env.mcp_stdio` 暴露 21 个 MCP 工具（`attractions_select` / `restaurants_select` / `accommodations_select` / `goto` / `intercity_transport_select` …），Pi 原生支持 MCP；再写 adapter 把输出落成 `results/<method>/<uid>.json` 交给 `eval_exp.py`。
+在实验分支上复用了 `pi_bridge.PiSession`（桥接层一行没改），工具层换成基准自带的
+`agent_env.mcp_stdio`（21 个沙盒工具），输出改成严格 plan JSON，
+再加一层 `normalize.py` 确定性补齐 `tickets` / `cars` 等记账字段。
 
-但那等于**重写排程逻辑**（车次、换乘、时间窗、票价），不是接个转换层就完事。当前优先级低于把主产品做扎实。
+在 `easy 12 + medium 3 + human 3` 的混合 18 条上实测：
+
+| 指标 | 结果 |
+|---|---|
+| DR（交付合法 JSON） | 50.0% |
+| EPR.micro / LPR.micro | 90.9% / 96.3% |
+| **FPR（Final Pass Rate）** | **16.7%**（easy 子集 25.0%） |
+| 单条成本 | ¥0.032（闲时）～ ¥0.064（忙时） |
+| 单条耗时 | 约 118 秒 |
+
+瓶颈是 **DR**：复杂题（多天、多约束）上模型有一半吐不出合法 JSON；
+但只要交付成功，约束满足率超过 90%。和论文 Table 3 对照，easy 子集明显超过官方纯神经基线
+（0～5.33），约为 NeSy 冠军（52.6～60.6）的一半。样本量与评测脚本都不同，**不是官方排名**。
+
+完整跑法、token 明细、成本外推与论文基线对照见
+[实验分支的 benchmark/README.md](https://github.com/zayuchips/zhixing-travel-agent/blob/feature/chinatravel/benchmark/README.md)。
+
+> 主产品**没有合并**这套实验代码：它依赖另一个仓库、另一个 Python 版本和静态沙盒，
+> 塞进来会破坏「零依赖、一条命令启动」。两边都需要的通用修复（`--system-prompt`、
+> 抑制重复工具调用）已单独回合到 main。
 
 ---
 
