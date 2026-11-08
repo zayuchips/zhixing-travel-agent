@@ -115,12 +115,19 @@ def load_queries(root, split, limit):
 
 
 def collect(prompt, timeout):
-    """驱动一次 Pi 会话，拼回模型吐出的文本，并记录工具调用次数。"""
+    """驱动一次 Pi 会话，拼回模型吐出的文本，并记录工具调用与 token 用量。"""
     from agent import pi_bridge
 
-    chunks, tools = [], []
+    chunks, tools, usage_events = [], [], []
 
     def on_event(rec):
+        if rec.get("usage"):
+            usage_events.append({
+                "type": rec.get("type"),
+                "usage": rec.get("usage"),
+                "message": (rec.get("message") or {}).get("role")
+                if isinstance(rec.get("message"), dict) else None,
+            })
         kind = rec.get("type")
         if kind == "message_update":
             ev = rec.get("assistantMessageEvent") or {}
@@ -138,7 +145,7 @@ def collect(prompt, timeout):
         ok, err = sess.ask(prompt, on_event, timeout=timeout)
     finally:
         sess.close()
-    return "".join(chunks), tools, ok, err
+    return "".join(chunks), tools, ok, err, usage_events
 
 
 def extract_json(text):
@@ -199,6 +206,7 @@ def main():
     print("共 %d 条 query，模型 %s\n" % (len(queries), args.model))
 
     ok_n = 0
+    metrics = []
     for idx, (uid, q) in enumerate(queries, 1):
         text = q.get("nature_language") or ""
         prompt = (
@@ -208,11 +216,18 @@ def main():
             % (text, q.get("start_city"), q.get("target_city"),
                q.get("days"), q.get("people_number")))
         started = time.time()
-        raw, tools, ok, err = collect(prompt, args.timeout)
+        raw, tools, ok, err, usage_events = collect(prompt, args.timeout)
+        elapsed = time.time() - started
         plan = extract_json(raw)
         with io.open(os.path.join(log_dir, uid + ".txt"), "w", encoding="utf-8") as f:
             f.write("RAW OUTPUT\n" + raw + "\n\nTOOLS\n" + "\n".join(tools) +
                     "\n\nERROR\n" + str(err))
+        with io.open(os.path.join(log_dir, uid + ".usage.jsonl"), "w", encoding="utf-8") as f:
+            for ev in usage_events:
+                f.write(json.dumps(ev, ensure_ascii=False) + "\n")
+        metrics.append({"uid": uid, "elapsed_sec": round(elapsed, 1),
+                        "tools": len(tools), "output_chars": len(raw),
+                        "usage_events": usage_events})
 
         status = "FAIL"
         fixes = []
@@ -231,11 +246,14 @@ def main():
             else:
                 print("   ", msg[:150])
         print("[%d/%d] %s  %s  %.0fs  工具 %d 次  输出 %d 字  规范化 %d 项" %
-              (idx, len(queries), uid, status, time.time() - started, len(tools), len(raw),
-               len(fixes) if plan is not None else 0))
+              (idx, len(queries), uid, status, elapsed, len(tools), len(raw), len(fixes)))
         print("    工具:", ", ".join(tools[:8]) if tools else "（无）")
 
+    with io.open(os.path.join(RUNTIME, "metrics.json"), "w", encoding="utf-8") as f:
+        json.dump({"model": args.model, "split": args.split, "runs": metrics},
+                  f, ensure_ascii=False, indent=2)
     print("\n合法计划 %d/%d，结果目录 results/%s/" % (ok_n, len(queries), METHOD))
+    print("token 明细: .runtime/logs/*.usage.jsonl　汇总: .runtime/metrics.json")
 
     if args.eval:
         cmd = [venv_py, "eval_exp.py", "--splits", args.split,
