@@ -1,0 +1,30 @@
+import requests
+
+class TravelAgent:
+    def __init__(self, api_client):
+        self.api_client = api_client
+
+    def search_travel_info(self, keyword):
+        try:
+            # 1. 模拟调用外部接口或工具
+            response = self.api_client.call_tool(keyword)
+            
+            # 2. 处理限流 (Rate Limiting)
+            if response.status_code == 429:
+                return {"success": False, "message": "当前请求人数过多，请稍后再试", "error_code": 429}
+                
+            response.raise_for_status() # 遇到其他非200状态码抛出异常
+            
+            data = response.json()
+            
+            # 3. 处理空结果
+            if not data or (isinstance(data, list) and len(data) == 0):
+                return {"success": False, "message": "未查询到相关数据，请更换关键词重试", "error_code": 204}
+                
+            return {"success": True, "data": data}
+            
+        except requests.exceptions.ConnectionError:
+            # 4. 处理断网 (Network Disconnect)
+            return {"success": False, "message": "网络连接异常，请检查您的网络设置", "error_code": 500}
+        except Exception as e:
+            return {"success": False, "message": f"系统内部错误: {str(e)}", "error_code": 500}
